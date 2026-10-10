@@ -1,61 +1,101 @@
-# Cumberlands Compass AI
+# Stage 1 (Scrape): files and commit plan
 
-A retrieval-augmented (RAG) chatbot that answers student questions using only public
-University of the Cumberlands web pages and documents. Every answer cites the page it
-came from; when the pages don't support an answer, the bot says
-"I don't have that information" instead of guessing. MSAI 633 residency project.
+This bundle holds the Stage 1 crawler for `UC_CompassAI`. Copy it into the repo in
+three commits on its own branch, then open a pull request for review.
 
-## Pipeline
+## What's inside
 ```
-offline:  crawl -> extract -> chunk -> embed -> index
-online:   question -> retrieve (dense + BM25 + hybrid) -> rerank -> answer / refuse / refer
-          -> generate a cited answer -> chat UI with sources and a retrieval trace
+compass/__init__.py         package marker
+compass/config.py           shared settings: paths, User-Agent, 1 s delay, sitemap URL, extra seeds
+compass/s1_crawl.py         the crawler
+tests/__init__.py           package marker
+tests/test_crawl_scope.py   scope + ID tests (no network, no API key)
 ```
+`config.py` also defines paths that later stages use (normalized text, chunks,
+Chroma); they are just constants and do nothing until those stages land.
 
-| Stage | Module (`compass/`) | What it does |
-|---|---|---|
-| 1 Crawl | `s1_crawl.py` | sitemap-driven crawl; robots.txt, <= 1 req/s, allow-listed sections only |
-| 2 Extract | `s2_extract.py` | clean text from HTML and PDFs; tables kept; PII redacted; page type and dates |
-| 3 Chunk | `s3_chunk.py` | fixed-size vs structure-aware chunks with heading paths |
-| 4 Embed | `s4_embed.py` | `all-MiniLM-L6-v2`, 384-d, L2-normalized |
-| 5 Index | `s5_index.py` | ChromaDB (cosine) + BM25; stale-chunk check on re-index |
-| 6 Retrieve | `s6_retrieve.py` | dense, BM25, hybrid Reciprocal Rank Fusion; page-type filter |
-| 7 Rerank | `s7_rerank.py` | cross-encoder `ms-marco-MiniLM-L-6-v2`, pool 20 -> top 5 |
-| 8 Decide | `s8_ground.py` | answer, refuse, or refer to a university office |
-| 9 Generate | `s9_generate.py` | Claude Haiku 5.5 answers from sources only, with `[n]` citations |
-| UI | `app.py` | Streamlit chat with citations, refusals and a retrieval trace |
+## What the crawler does (be ready to explain this in Q&A)
+1. Reads `sitemap.xml` (2,122 URLs) plus `EXTRA_SEEDS` from config.
+2. Keeps only URLs that pass `is_in_scope()`: https, a `*.ucumberlands.edu` host, and an
+   allow-listed section (`ALLOWED_SECTIONS`: admissions, tuition-aid, academics, ...).
+   Blocks `/directory` (712 staff profiles = personal data), `/faculty-staff` and login
+   pages. Result: 264 pages in scope.
+3. `interleave_by_section()` round-robins across sections so a small test crawl
+   samples every section.
+4. `PoliteSession`: parses each host's `robots.txt` (unreadable = disallowed) and sleeps
+   1.0 s before every request (<= 1 request/second); descriptive User-Agent.
+5. Decides HTML vs PDF from the `Content-Type` header (not the URL), skips duplicate
+   content by sha256, and queues PDF links found on crawled pages.
+6. Saves raw bytes to `data/raw/{doc_id}.html|.pdf` **before any parsing**, plus one
+   line per document in `data/raw/manifest.jsonl` (url, final_url, kind, section, bytes,
+   sha256, fetched_at). `doc_id = sha1(url)[:12]` is deterministic, so re-crawls keep
+   the same IDs.
+7. Re-checks scope on the *final* URL after redirects.
 
-## Repository layout
-```
-compass/   pipeline stages and shared config
-eval/      golden question set, evaluation runner, statistics
-reports/   00_proposal ... 07_ethics (course report set)
-docs/      learning notes and design decisions
-tests/     unit tests (PII redaction, crawl scope)
-data/      local data; raw and derived data are git-ignored (scraped content is not published)
-```
-Modules land stage by stage in follow-up pull requests.
+`data/raw/` is git-ignored: scraped content never goes into the repo.
 
-## Setup
+## Commit plan
 ```bash
-python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.txt     # pinned versions
-cp .env.example .env                          # then set ANTHROPIC_API_KEY=...
+cd UC_CompassAI
+git checkout main && git pull
+git checkout -b stage/crawl
 ```
-Never commit `.env` or any key: `.env` is git-ignored, and a committed key is an
-automatic zero.
 
-## Working agreement
-- `main` is protected: all work goes through short-lived feature branches
-  (`stage/crawl`, `eval/golden-set`, ...) and pull requests with at least one
-  teammate's review.
-- Commit messages: short, present tense, with a type prefix
-  (`feat:`, `fix:`, `docs:`, `chore:`, `test:`).
-- Every member contributes commits to more than one pipeline stage.
-- AI tools are allowed and are documented in this README's "AI usage" section as
-  they are used.
+### Commit 1: shared configuration
+```bash
+mkdir -p compass && cp <bundle>/compass/__init__.py <bundle>/compass/config.py compass/
+git rm -q compass/.gitkeep
+git add compass/
+git commit -m "feat: add shared config for paths, crawl settings and .env loading" \
+  -m "Central place for data paths, the sitemap URL, the descriptive User-Agent,
+the 1-second request delay and extra seed URLs. Loads .env and keeps model
+downloads inside the project."
+```
 
-## AI usage
-- Claude Code (Claude Opus 5.5) is used as a pair programmer for pipeline code,
-  evaluation tooling and report drafts; every change is reviewed by a team member
-  through a pull request.
+### Commit 2: the crawler
+```bash
+cp <bundle>/compass/s1_crawl.py compass/
+git add compass/s1_crawl.py
+git commit -m "feat: add sitemap crawler with robots.txt, rate limit and scope allow-list" \
+  -m "Crawl in-scope pages from the sitemap, honoring robots.txt per host and a
+1 req/s delay. Save raw bytes and a JSONL manifest (url, sha256, timestamp)
+before parsing, keyed by deterministic doc IDs. Exclude the staff directory,
+faculty-staff and login pages; dedupe by content hash; re-check scope after
+redirects."
+```
+
+### Commit 3: tests
+```bash
+mkdir -p tests && cp <bundle>/tests/__init__.py <bundle>/tests/test_crawl_scope.py tests/
+git rm -q tests/.gitkeep
+git add tests/
+git commit -m "test: cover crawl scope exclusions and deterministic doc IDs" \
+  -m "Check that directory, faculty-staff, login, news and non-https URLs are
+rejected, that student-facing pages and university PDFs are accepted, and
+that doc IDs and URL normalization are stable."
+```
+
+## Verify before pushing
+```bash
+python -m tests.test_crawl_scope                          # 3 passed (no network)
+python -m compass.s1_crawl --max-pages 30                 # ~40 s; writes data/raw/
+```
+Expected from the 30-page run: about 30 HTML + a few PDFs, ~4 pages from each major
+section, `skipped: none`. `git status` must show nothing under `data/raw/` (ignored).
+
+## Pull request
+```bash
+git push -u origin stage/crawl
+```
+- **Title:** `feat: stage 1 crawler (sitemap, robots.txt, rate limit, raw store)`
+- **Description:** what the crawler does (the list above), how to verify (the two
+  commands), and the scope decisions (allow-list; directory and login excluded).
+- **Reviewer:** one teammate approves before merge.
+
+## Notes
+- The SharePoint PDFs (calendars, handbook, ...) are **not** fetched by the crawler:
+  SharePoint's robots.txt disallows all crawlers. They arrive with Stage 2 as
+  hand-downloaded files with recorded sources.
+- This code was written with Claude Code in a pairing session (see the README's
+  "AI usage" section). Whoever commits it should read it first and be able to explain
+  each step above; that's what the course's Q&A checks.

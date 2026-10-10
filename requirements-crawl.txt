@@ -1,7 +1,0 @@
-requests
-beautifulsoup4
-lxml[html-clean]
-trafilatura
-pymupdf
-pandas
-tabulate

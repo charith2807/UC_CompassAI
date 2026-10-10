@@ -1,15 +1,26 @@
-# secrets
+# secrets — a committed key is an automatic zero
 .env
-.env.*
-!.env.example
-
-# raw / processed scraped content (never published, per proposal)
-data/raw/
-data/processed/
+*.key
 
 # python
 .venv/
 __pycache__/
 *.pyc
+
+# data and indexes (raw scraped content stays out of the repo)
+data/raw/
+data/normalized/
+data/chunks/
+data/embeddings/
+data/bm25/
+chroma/
+eval/results/
+*.sqlite3
+
+# model downloads (kept inside the project)
+.cache/
+
+# OS / editor
 .DS_Store
-handoff/
+.vscode/
+.idea/

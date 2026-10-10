@@ -8,3 +8,8 @@ PyYAML>=6.0,<7.0
 pytest>=8.0,<9.0
 jsonschema>=4.20,<5.0
 python-dotenv>=1.0,<2.0
+# Extraction pins (team-tested versions from requirements-lock.txt). soupsieve 3.x rejects
+# the CSS selectors in crawler/extract.py, so every HTML page failed extraction.
+soupsieve==2.8.4
+pandas==2.3.3
+trafilatura==2.0.0

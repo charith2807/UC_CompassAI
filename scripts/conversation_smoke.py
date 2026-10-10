@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 os.chdir(ROOT)
 from streamlit.testing.v1 import AppTest
-app=AppTest.from_file('app/streamlit_app.py',default_timeout=90).run()
+app=AppTest.from_file(str(ROOT/'app/streamlit_app.py'),default_timeout=90).run()
 assert not app.exception
 app.sidebar.checkbox[0].set_value(True).run()
 records=[]

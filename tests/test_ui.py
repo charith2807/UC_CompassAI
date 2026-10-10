@@ -2,10 +2,13 @@ import unittest
 from pathlib import Path
 from streamlit.testing.v1 import AppTest
 
-@unittest.skipUnless(any(Path('data/processed').glob('*.json')), 'Private corpus not available; run UI smoke locally with the handoff data')
+# Absolute paths: newer Streamlit resolves relative AppTest paths against the calling file.
+ROOT=Path(__file__).resolve().parents[1]
+
+@unittest.skipUnless(any((ROOT/'data/processed').glob('*.json')), 'Private corpus not available; run UI smoke locally with the handoff data')
 class UITests(unittest.TestCase):
     def test_mock_history_citations_and_refusal(self):
-        app=AppTest.from_file(str(Path('app/streamlit_app.py')),default_timeout=30).run()
+        app=AppTest.from_file(str(ROOT/'app/streamlit_app.py'),default_timeout=30).run()
         self.assertFalse(app.exception)
         app.sidebar.selectbox[0].set_value('UI mock').run()
         app.chat_input[0].set_value('What is tuition?').run()

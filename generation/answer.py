@@ -109,6 +109,16 @@ class AnswerService:
                     claims=validate_claims(payload['claims'],evidence)
                     break
                 except ValueError as exc:
+                    # A broad overview can contain independently supported claims.
+                    # Omit invalid claims; never relax their citation validation.
+                    supported=[]
+                    for claim in payload['claims']:
+                        try:supported.extend(validate_claims([claim],evidence))
+                        except ValueError:pass
+                    if supported:
+                        result['omitted_unsupported_claims']=len(payload['claims'])-len(supported)
+                        claims=supported
+                        break
                     if attempt or str(exc) not in ('Citation must quote <=25 exact words from a retrieved chunk','Claim introduces unsupported numbers','Claim introduces unsupported table unit'):raise
                     result['citation_repair_attempts']=1
                     prompt=[*prompt,{'role':'system','content':'The previous output failed citation validation. Every course code, number, and unit must appear in the exact source spans selected for that particular claim. Add the correct source identifiers or remove unsupported details. Generate a fresh answer using SHORT verbatim contiguous quotes copied character-for-character from the same retrieved context, at most 25 words each. Preserve whitespace and punctuation. Do not paraphrase inside quotes. Remove unsupported claims; refuse if no valid evidence supports an answer.'}]

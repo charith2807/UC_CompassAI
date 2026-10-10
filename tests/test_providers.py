@@ -88,6 +88,17 @@ class ProviderTests(unittest.TestCase):
         result=service.answer('What is tuition?')
         self.assertFalse(result['refused']);self.assertEqual(result['citations'][0]['url'],CHUNK['source_url'])
         self.assertEqual(result['provider'],'openai')
+    def test_partial_answer_drops_unsupported_claim(self):
+        payload={'refused':False,'claims':[
+            {'text':'Annual tuition is $9,875.','evidence':[{'chunk_id':CHUNK['chunk_id'],'quote':'q0_1'}]},
+            {'text':'Annual tuition is $1.','evidence':[{'chunk_id':CHUNK['chunk_id'],'quote':'q0_1'}]}]}
+        class Retriever:
+            def retrieve(self,*args):return [CHUNK],{}
+        result=AnswerService(Retriever(),{**CONFIG,'llm_provider':'openai'},client=fake_client(json.dumps(payload))).answer('What is tuition?')
+        self.assertFalse(result['refused'])
+        self.assertEqual(result['omitted_unsupported_claims'],1)
+        self.assertNotIn('$1.',result['answer'])
+        self.assertIn('$9,875.',result['answer'])
     def test_fabricated_numeric_claim_refused(self):
         payload={'refused':False,'claims':[{'text':'Annual tuition is $1.','evidence':[{'chunk_id':CHUNK['chunk_id'],'quote':'q0_1'}]}]}
         class Retriever:

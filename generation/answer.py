@@ -123,11 +123,12 @@ class AnswerService:
                     result['citation_repair_attempts']=1
                     prompt=[*prompt,{'role':'system','content':'The previous output failed citation validation. Every course code, number, and unit must appear in the exact source spans selected for that particular claim. Add the correct source identifiers or remove unsupported details. Generate a fresh answer using SHORT verbatim contiguous quotes copied character-for-character from the same retrieved context, at most 25 words each. Preserve whitespace and punctuation. Do not paraphrase inside quotes. Remove unsupported claims; refuse if no valid evidence supports an answer.'}]
             # Reject excessive verbatim copying even if the model followed citation schema.
-            for claim in claims:
-                words=claim['text'].split()
-                for i in range(max(0,len(words)-25)):
-                    phrase=' '.join(words[i:i+26])
-                    if any(phrase in c['text'] for c in evidence):raise ValueError('Excessive verbatim quote')
+            # Like other invalid claims, a copied claim is omitted; the answer fails only if none remain.
+            original=claims
+            claims=[claim for claim in original if not copies_source(claim['text'],evidence)]
+            if not claims:raise ValueError('Excessive verbatim quote')
+            if len(claims)<len(original):
+                result['omitted_unsupported_claims']=result.get('omitted_unsupported_claims',0)+len(original)-len(claims)
             citations=[];lines=[]
             for claim in claims:
                 labels=[]
@@ -176,6 +177,17 @@ def create_service(config=None,collection='compass'):
 
 def answer(query,**kwargs):
     return create_service().answer(query,**kwargs)
+
+
+def copies_source(text,evidence,limit=25):
+    """True when a claim repeats more than `limit` consecutive words of retrieved text."""
+    words=text.split()
+    # Compare on collapsed whitespace so line breaks in the source cannot hide a copy.
+    sources=[' '.join(c['text'].split()) for c in evidence]
+    for i in range(max(0,len(words)-limit)):
+        phrase=' '.join(words[i:i+limit+1])
+        if any(phrase in source for source in sources):return True
+    return False
 
 
 def excerpt(text,limit=25):

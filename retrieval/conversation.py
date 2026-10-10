@@ -27,6 +27,16 @@ SUBJECTS=('information technology','artificial intelligence','business','leaders
           'criminal justice','accounting','public health','occupational therapy','physical therapy')
 FORMATS=(('executive',r'\b(?:executive|hybrid)\b'),('online',r'\bonline\b'),('on-campus',r'\b(?:on-campus|on campus|in person)\b'))
 QUALIFIERS=(('term',r'\b(?:spring|summer|fall|autumn|winter)\b'),('year',r'\b20\d{2}\b'))
+# Honorifics and job titles reuse degree/format words ("Ms. Smith", "executive director",
+# "associate dean"); they never select a program, so they are masked before slot matching.
+NON_PROGRAM=re.compile(r"\b(?:mr|mrs|ms|mx)\.\s*[a-z][\w'-]*|\b(?-i:Mrs?|Ms|Mx)\s+(?-i:[A-Z])[\w'-]*|"
+    r"\b(?:executive|associate|assistant)\s+(?:vice\s+)?(?:director|dean|provost|president|chancellor|chair|"
+    r"professor|officer|manager|coordinator|editor|assistant)s?\b",re.I)
+
+
+def mask(text):
+    """Blank non-program spans, keeping offsets aligned with the original text."""
+    return NON_PROGRAM.sub(lambda match:' '*len(match.group(0)),text)
 
 
 def topic(query):
@@ -36,15 +46,17 @@ def topic(query):
 
 
 def selections(query):
-    result={}
+    result={};query=mask(query)
+    # In an all-caps sentence "IT"/"AI" are ordinary words, not acronyms.
+    shouting=query.isupper() and len(query.split())>1
     for key,choices in (('degree',DEGREES),('format',FORMATS)):
         for value,pattern in choices:
             if re.search(pattern,query,re.I):result[key]=value;break
     for name in SUBJECTS:
         if re.search(r'\b'+re.escape(name)+r'\b',query,re.I):result['subject']=name;break
     if 'subject' not in result:
-        if re.search(r'\bIT\b',query) or re.fullmatch(r'\s*it[?!.\s]*',query) or re.search(r'\b(?:phd in it|it field|it program)\b',query,re.I):result['subject']='information technology'
-        elif re.search(r'\bAI\b',query):result['subject']='artificial intelligence'
+        if (re.search(r'\bIT\b',query) and not shouting) or re.fullmatch(r'\s*it[?!.\s]*',query) or re.search(r'\b(?:phd in it|it field|it program)\b',query,re.I):result['subject']='information technology'
+        elif re.search(r'\bAI\b',query) and not shouting:result['subject']='artificial intelligence'
     if re.search(r'\binternational\b',query,re.I):result['audience']='international'
     elif re.search(r'\b(?:domestic|resident)\b',query,re.I):result['audience']='domestic'
     for key,pattern in QUALIFIERS:
@@ -82,12 +94,11 @@ def replace_selections(text,updates):
     for key,value in updates.items():
         replacement=labels.get(key,{}).get(value,value.title() if key=='subject' else value)
         pattern=patterns[key]
-        if re.search(pattern,text,re.I):
-            count=[0]
-            def substitute(match):
-                count[0]+=1
-                return replacement if count[0]==1 else ''
-            text=re.sub(pattern,substitute,text,flags=re.I)
+        found=list(re.finditer(pattern,mask(text),re.I))
+        if found:
+            # Replace the first selector and drop repeats; masked job titles stay untouched.
+            for i,match in reversed(list(enumerate(found))):
+                text=text[:match.start()]+(replacement if i==0 else '')+text[match.end():]
         else:text+=' '+replacement
     return text
 

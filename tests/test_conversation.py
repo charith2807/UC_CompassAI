@@ -170,5 +170,21 @@ class ConversationTests(unittest.TestCase):
         self.assertIn('tuition fee',prompt['question'])
         self.assertIn('Information Technology',prompt['question'])
         self.assertIn('executive',prompt['question'])
+    def test_titles_and_honorifics_do_not_select_programs(self):
+        for query,slot in [('Ms. Smith office hours?','degree'),('Ms Smith office hours?','degree'),
+                           ('Who is the executive director of admissions?','format'),
+                           ('Is the associate dean available?','degree'),('WHAT IS IT?','subject')]:
+            result=resolve_query(query,[])
+            self.assertNotIn(slot,result['conversation_state']['slots'],query)
+            self.assertIsNone(result['clarification'],query)
+    def test_program_words_still_select_programs(self):
+        from retrieval.conversation import selections,replace_selections
+        self.assertEqual(selections('What is the MS in nursing tuition?'),{'degree':'masters','subject':'nursing'})
+        self.assertEqual(selections('associate degree in business'),{'degree':'associate','subject':'business'})
+        self.assertEqual(selections('executive PhD in IT tuition'),{'degree':'phd','format':'executive','subject':'information technology'})
+        self.assertEqual(selections('IT')['subject'],'information technology')
+        self.assertEqual(selections('PHD IN IT')['subject'],'information technology')
+        self.assertEqual(replace_selections('executive director of the executive PhD in IT',{'format':'online'}),
+                         'executive director of the online PhD in IT')
 
 if __name__=='__main__':unittest.main()

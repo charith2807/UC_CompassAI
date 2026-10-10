@@ -99,6 +99,31 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(result['omitted_unsupported_claims'],1)
         self.assertNotIn('$1.',result['answer'])
         self.assertIn('$9,875.',result['answer'])
+    def test_verbatim_copied_claim_is_omitted_not_whole_answer(self):
+        # Letters only, so the number check cannot be what removes the copied claim.
+        copied=' '.join('word'+chr(97+i//26)+chr(97+i%26) for i in range(30))
+        chunk={**CHUNK,'text':'Annual tuition is $9,875.\n'+copied}
+        valid={'text':'Annual tuition is $9,875.','evidence':[{'chunk_id':chunk['chunk_id'],'quote':'q0_0'}]}
+        verbatim={'text':copied,'evidence':[{'chunk_id':chunk['chunk_id'],'quote':'q0_1'}]}
+        class Retriever:
+            def retrieve(self,*args):return [chunk],{}
+        def ask(claims):
+            client=fake_client(json.dumps({'refused':False,'claims':claims}))
+            return AnswerService(Retriever(),{**CONFIG,'llm_provider':'openai'},client=client).answer('What is tuition?')
+        result=ask([valid,verbatim])
+        self.assertFalse(result['refused'])
+        self.assertEqual(result['omitted_unsupported_claims'],1)
+        self.assertIn('$9,875.',result['answer'])
+        self.assertNotIn(copied.split()[-1],result['answer'])
+        result=ask([verbatim])
+        self.assertTrue(result['refused'])
+        self.assertEqual(result['reason'],'generation_or_grounding_error')
+    def test_verbatim_copy_detected_across_source_line_breaks(self):
+        from generation.answer import copies_source
+        words=['word'+chr(97+i//26)+chr(97+i%26) for i in range(30)]
+        source={'text':' '.join(words[:13])+'\n  '+' '.join(words[13:])}
+        self.assertTrue(copies_source(' '.join(words),[source]))
+        self.assertFalse(copies_source(' '.join(words[:25]),[source]))
     def test_fabricated_numeric_claim_refused(self):
         payload={'refused':False,'claims':[{'text':'Annual tuition is $1.','evidence':[{'chunk_id':CHUNK['chunk_id'],'quote':'q0_1'}]}]}
         class Retriever:

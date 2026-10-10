@@ -5,7 +5,8 @@ from .conversation import context,selections,program_anchor,SUBJECTS
 PHD=re.compile(r'\b(?:ph\.?\s*d\.?|doctor(?:ate|al)|doctor of philosophy)\b',re.I)
 FEES=re.compile(r'\b(?:fees?|tuition|cost|price|pricing|pay|how much)\b',re.I)
 DSO=re.compile(r'\b(?:DSO|designated school official)\b',re.I)
-CONTACT=re.compile(r'\b(?:contact|email|phone|telephone|reach|office|where|who)\b',re.I)
+# "who"/"where" signal contact only in contact phrasings; "Who is a DSO?" asks for the role.
+CONTACT=re.compile(r'\b(?:contact|email|phone|telephone|reach|office|(?:who|where)\s+(?:do|can|should|would)\s+(?:i|we)|who\s+is\s+(?:my|our))\b',re.I)
 DSO_DETAIL=re.compile(r'\b(?:contact|email|phone|telephone|reach|office|where|who|role|mean|stands?|definition|what is|what does|responsibilit|help|cpt|opt|visa|i-?20)\b',re.I)
 COURSES=re.compile(r'\b(?:courses?|curriculum|classes|subjects|what (?:will|would|do) I (?:study|learn))\b',re.I)
 

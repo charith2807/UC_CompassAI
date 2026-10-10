@@ -31,6 +31,19 @@ class ProgramScopeTests(unittest.TestCase):
     def test_dso_role_and_contact_are_not_ambiguous(self):
         for question in ['What is a DSO?', 'How do I contact my DSO?', 'What does DSO stand for?']:
             self.assertIsNone(resolve_query(question)['clarification'])
+    def test_dso_definition_question_is_not_a_contact_request(self):
+        from retrieval.query import retrieval_question,contact_evidence
+        chunks=[{'chunk_id':'role','text':'A DSO helps F-1 students with OPT and CPT reporting. '
+                 'If not sure which DSO to contact, email the DSO listed on your current I-20 document.'}]
+        for question in ['Who is a DSO?','Where does a DSO work with students?','What is a DSO?']:
+            result=resolve_query(question)
+            self.assertEqual(retrieval_question(result['query'],result['scope']),result['query'],question)
+            self.assertEqual(contact_evidence(result['query'],chunks),chunks,question)
+        for question in ['Who is my DSO?','Who do I contact about my DSO?','Where can I reach the DSO?',
+                         'How do I contact my DSO?','DSO email']:
+            result=resolve_query(question)
+            self.assertIn('current I-20',retrieval_question(result['query'],result['scope']),question)
+            self.assertEqual(len(contact_evidence(result['query'],chunks)[0]['text'].split('. ')),1,question)
 
     def test_curriculum_query_and_followup_preserve_program(self):
         from retrieval.query import retrieval_question

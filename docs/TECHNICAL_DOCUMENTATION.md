@@ -402,8 +402,8 @@ It holds user-derived slots only, never assistant facts.
   Designated School Official (DSO), or an explanation of what a DSO does?"*
   (`pending = dso_detail`).
 - `retrieval_question` expands curriculum questions into a course-requirements query.
-  A DSO + contact question (`CONTACT`: contact, email, phone, reach, office, where, who)
-  is replaced by the fixed sentence *"If not sure which DSO to contact email the DSO
+  A DSO + contact question (`CONTACT`: contact, email, phone, telephone, reach, office,
+  "who/where do/can/should I…", "who is my/our…") is replaced by the fixed sentence *"If not sure which DSO to contact email the DSO
   listed on current I-20 document"*.
 
 ---
@@ -579,7 +579,7 @@ results in edge cases or evaluation skew. **Low** = maintainability or efficienc
 | B10 | **Low** | `indexing/rechunk.py:19-20` | **Rebuild is not atomic.** `clear_old` deletes the old vectors before `store.add`. A crash part-way through the upsert leaves a partial collection with no rollback (the "embed first" protection only covers model failures). Also, `orphan_count` is always 0 because an assertion has already enforced equality. |
 | B11 | **Low** | `retrieval/trace.py:27` | With `use_rerank=False`, results are cut to a hard-coded `[:5]` instead of `rerank_top_k`. |
 | B12 | **Low** | `app/streamlit_app.py:68-84` | **Failed turns pollute later context.** If the service throws, the user message is already in `session_state.messages` with no assistant reply. The next turn rebuilds context by replaying that failed message as a user turn. |
-| B13 | **Medium** **[verified]** | `retrieval/query.py` `CONTACT`, `retrieval_question`, `contact_evidence` (commit 3) | **DSO definition questions are treated as contact requests.** `CONTACT` includes `who` and `where`, so `"Who is a DSO?"` (asking what the role is) gets the fixed contact retrieval query, and `contact_evidence` strips each chunk down to the "email the DSO listed on your I-20" sentence. The explanation of the role is removed before generation. Fix: drop `who`/`where` from `CONTACT`, or require them next to "contact" words ("who do I contact"), and leave definition questions ("who is a DSO", "what is a DSO") unfiltered. |
+| B13 | **Medium** **[verified]** **✅ Fixed** | `retrieval/query.py` `CONTACT`, `retrieval_question`, `contact_evidence` (commit 3) | **DSO definition questions are treated as contact requests.** `CONTACT` includes `who` and `where`, so `"Who is a DSO?"` (asking what the role is) gets the fixed contact retrieval query, and `contact_evidence` strips each chunk down to the "email the DSO listed on your I-20" sentence. The explanation of the role is removed before generation. **Fix applied:** `CONTACT` matches `who`/`where` only in contact phrasings ("who do I contact", "where can I reach", "who is my DSO"), so definition questions keep their normal retrieval and full evidence. Regression test: `test_dso_definition_question_is_not_a_contact_request`. |
 
 ### 12.2 Design issues
 
@@ -660,14 +660,14 @@ results in edge cases or evaluation skew. **Low** = maintainability or efficienc
 | `scripts/ci_tests.py` | Runs each test file only when its dependency files exist. Prints "Deferred until dependent PR merges" otherwise; supports staged role-by-role merging. |
 | `scripts/package_team.py` | Builds per-role zip handoffs (owned files, PR guide, exact `git add`/commit/`gh pr create` commands, SHA-256 manifest). Redacts home paths in log copies and validates that each file has exactly one owner using `docs/OWNERSHIP.json`. |
 
-### Tests (98 methods on `KarunaTest`, `unittest`; 91 on `test1` before the B1–B3 fixes and commit 3)
+### Tests (99 methods on `KarunaTest`, `unittest`; 91 on `test1` before the B1–B3 fixes and commit 3)
 
 | File | # | Covers |
 |---|---:|---|
 | `test_pipeline.py` | 18 | Chunk IDs, windows, RRF, rerank cap, stale deletion, citation validation, metrics, split, unverified-eval blocking, no-key mode |
 | `test_conversation.py` | 18 | Multi-turn slot inheritance, resets, clarifications, per-session isolation |
 | `test_providers.py` | 15 | Quote schema, whitespace spans, table units, repair bound, provider order, fallback, pinning, partial answers, verbatim-copy guard |
-| `test_program_scope.py` | 14 | IT acronym, degree changes, executive vs online tuition, scope before truncation, DSO clarification and contact evidence |
+| `test_program_scope.py` | 15 | IT acronym, degree changes, executive vs online tuition, scope before truncation, DSO clarification and contact evidence |
 | `test_eval_protocol.py` | 8 | Test receipt, calibration integrity, snapshot tamper detection, grading completeness, outage handling |
 | `test_refusal.py` | 7 | Credential, aid, immigration, weak-evidence and service refusals |
 | `test_chunking.py`, `test_injection.py`, `test_normalization.py`, `test_ingestion_monitoring.py` | 3 each | Chunking, injection, table alignment, crawler politeness and log schema |

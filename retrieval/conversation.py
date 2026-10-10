@@ -6,8 +6,9 @@ RESET=re.compile(r'^(?:new topic|new question|another topic|start over|clear con
 QUESTION=re.compile(r'^(?:what|when|where|why|how|who|which|can|could|do|does|is|are|will|tell me|give me|explain)\b',re.I)
 REFERENCE=re.compile(r'\b(?:this|that|those|these|they|their|its|what about|how about|i mean|also|and|more|continue|same|else|elaborate|instead|rather|actually|no)\b',re.I)
 ELLIPTICAL=re.compile(r'(?:why|when|where|how|can you explain|could you explain)[?!.\s]*',re.I)
-FACET=re.compile(r'\b(?:courses?|curriculum|classes|subjects|study|learn|fees?|tuition|cost|price|deadline|requirements?|apply|application|duration|long|credits?|eligib|documents?|hours|location|how much)\b',re.I)
+FACET=re.compile(r'\b(?:contact|email|phone|telephone|office|courses?|curriculum|classes|subjects|study|learn|fees?|tuition|cost|price|deadline|requirements?|apply|application|duration|long|credits?|eligib|documents?|hours|location|how much)\b',re.I)
 TOPICS=(
+    ('DSO',r'\b(?:DSO|designated school official)\b'),
     ('tuition',r'\b(?:tuition|fees?|cost|price)\b'),
     ('library',r'\blibrary\b'),('housing',r'\b(?:housing|dorms?|residence halls?)\b'),
     ('dining',r'\b(?:dining|meal plans?|cafeteria)\b'),

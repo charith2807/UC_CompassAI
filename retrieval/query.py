@@ -4,10 +4,15 @@ from .conversation import context,selections,program_anchor,SUBJECTS
 
 PHD=re.compile(r'\b(?:ph\.?\s*d\.?|doctor(?:ate|al)|doctor of philosophy)\b',re.I)
 FEES=re.compile(r'\b(?:fees?|tuition|cost|price|pricing|pay|how much)\b',re.I)
+DSO=re.compile(r'\b(?:DSO|designated school official)\b',re.I)
+CONTACT=re.compile(r'\b(?:contact|email|phone|telephone|reach|office|where|who)\b',re.I)
+DSO_DETAIL=re.compile(r'\b(?:contact|email|phone|telephone|reach|office|where|who|role|mean|stands?|definition|what is|what does|responsibilit|help|cpt|opt|visa|i-?20)\b',re.I)
 COURSES=re.compile(r'\b(?:courses?|curriculum|classes|subjects|what (?:will|would|do) I (?:study|learn))\b',re.I)
 
 def retrieval_question(query,scope):
     """Expand curriculum intent without changing program or evidence boundaries."""
+    if DSO.search(query) and CONTACT.search(query):
+        return 'If not sure which DSO to contact email the DSO listed on current I-20 document'
     if scope and not scope.get('tuition') and COURSES.search(query):
         degree='PhD' if scope.get('degree')=='phd' else "master's"
         return degree+' in '+scope['subject']+' course requirements curriculum professional research content specialty courses'
@@ -36,6 +41,11 @@ def resolve_query(query,history=None):
                 'conversation_state':state,'action':turn['action']}
     if turn['action']:return resolved(query)
     if turn.get('clarification'):return resolved(query,clarification=turn['clarification'])
+    if DSO.search(query):
+        if not DSO_DETAIL.search(original) and state.get('pending') != 'dso_detail':
+            return resolved(query,clarification='Do you need contact information for your Designated School Official (DSO), or an explanation of what a DSO does?',pending='dso_detail')
+        # DSO is a student-service request, independent of the previous program.
+        return resolved(query)
     field=slots.get('subject');level=slots.get('degree');degree=level in ('phd','masters')
     label='PhD' if level=='phd' else "master's"
     if degree and field is None:
@@ -86,3 +96,15 @@ def audience_matches(chunk,slots):
     identity=' '.join([chunk.get('title',''),chunk.get('source_url','').replace('-',' '),*chunk.get('heading_path',[])])
     identity=re.sub(r'\bundergraduate\b','',identity,flags=re.I)
     return not re.search(r"\b(?:graduate|postgraduate|master'?s?|doctoral|doctorate|doctor|ph\.?\s*d|physician assistant|dpt|dba|edd)\b",identity,re.I)
+
+
+def contact_evidence(query,chunks):
+    """For DSO contact requests, retain exact contact sentences, not procedures."""
+    if not (DSO.search(query) and CONTACT.search(query)):return chunks
+    selected=[]
+    for chunk in chunks:
+        sentences=re.split(r'(?<=[.!?])\s+|\n+',chunk['text'])
+        routes=[line for line in sentences if DSO.search(line) and
+                re.search(r'email (?:the|your|a) (?:assigned )?DSO|contact (?:your )?assigned DSO by email',line,re.I)]
+        if routes:selected.append({**chunk,'text':'\n'.join(routes)})
+    return selected

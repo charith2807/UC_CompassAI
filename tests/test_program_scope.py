@@ -7,6 +7,31 @@ from retrieval.trace import Retriever
 IT='https://www.ucumberlands.edu/academics/executive/phd-information-technology'
 
 class ProgramScopeTests(unittest.TestCase):
+    def test_dso_information_clarifies_and_contact_followup_changes_topic(self):
+        previous=resolve_query('executive PhD in IT tuition')
+        first=resolve_query('Give me the DSO information',[{'role':'assistant','content':'','conversation_state':previous['conversation_state']}])
+        self.assertIn('contact information',first['clarification'])
+        self.assertIsNone(first['scope'])
+        follow=resolve_query('contact information',[{'role':'assistant','content':'','conversation_state':first['conversation_state']}])
+        self.assertIsNone(follow['clarification'])
+        self.assertIsNone(follow['scope'])
+        self.assertIn('DSO',follow['query'])
+        from retrieval.query import retrieval_question
+        self.assertIn('current I-20',retrieval_question(follow['query'],follow['scope']))
+    def test_dso_contact_evidence_excludes_reporting_instructions(self):
+        from retrieval.query import contact_evidence
+        route='If the student is not sure of which DSO to contact, he or she can email the DSO that is listed on their current I-20 document.'
+        chunks=[{'chunk_id':'policy','text':'Students must notify their DSO within five business days.'},
+                {'chunk_id':'contact','text':'Students must notify a DSO after CPT ends. '+route}]
+        selected=contact_evidence('How do I contact my DSO?',chunks)
+        self.assertEqual(len(selected),1)
+        self.assertEqual(selected[0]['text'],route)
+        self.assertEqual(chunks[1]['text'],'Students must notify a DSO after CPT ends. '+route)
+        self.assertEqual(contact_evidence('What is OPT?',chunks),chunks)
+    def test_dso_role_and_contact_are_not_ambiguous(self):
+        for question in ['What is a DSO?', 'How do I contact my DSO?', 'What does DSO stand for?']:
+            self.assertIsNone(resolve_query(question)['clarification'])
+
     def test_curriculum_query_and_followup_preserve_program(self):
         from retrieval.query import retrieval_question
         first=resolve_query('executive PhD in IT tuition')

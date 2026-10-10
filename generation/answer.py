@@ -8,7 +8,7 @@ from .grounding import REFUSAL,input_gate,evidence_gate,validate_claims
 from .prompt import messages,grounded_schema,expand_quotes
 from .settings import ROOT,load_config
 from .providers import ProviderRouter, ProviderUnavailable
-from retrieval.query import resolve_query,program_matches,shared_tuition_matches,audience_matches,FEES,retrieval_question
+from retrieval.query import resolve_query,program_matches,shared_tuition_matches,audience_matches,FEES,retrieval_question,contact_evidence
 
 class AnswerService:
     def __init__(self,retriever,config,client=None):
@@ -71,6 +71,7 @@ class AnswerService:
             if FEES.search(search_query):
                 evidence=[c for c in evidence if (FEES.search(c['text']) or shared_tuition_matches(c,scope))
                     and not re.search(r'career|salary|outcome',' '.join(c.get('heading_path',[])),re.I)]
+        evidence=contact_evidence(search_query,evidence)
         if not evidence:
             result['reason']='insufficient_matching_evidence'
             result['answer']="I couldn't find enough relevant information in the saved university sources to answer that question. Please check the official university site."

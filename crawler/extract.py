@@ -17,10 +17,13 @@ Privacy filter:
 from __future__ import annotations
 
 import csv
+import argparse
 import hashlib
 import io
 import json
 import re
+from pathlib import Path
+from datetime import date
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -58,6 +61,38 @@ def md_table(df: pd.DataFrame) -> str:
     return df.to_markdown(index=False)
 
 
+def heading_paths(headings: list[dict]) -> list[list[str]]:
+    stack = []
+    paths = []
+    for heading in headings:
+        while stack and stack[-1][0] >= heading['level']:
+            stack.pop()
+        stack.append((heading['level'], heading['text']))
+        paths.append([text for _, text in stack])
+    return paths
+
+
+def effective_date(text: str) -> str | None:
+    # Accept explicitly labelled ISO dates only; crawl/modified dates are not effective dates.
+    match = re.search(r'\beffective(?:\s+date)?\s*[:\-]?\s*(\d{4}-\d{2}-\d{2})\b', text, re.I)
+    if match:
+        try:
+            return date.fromisoformat(match.group(1)).isoformat()
+        except ValueError:
+            pass
+    return None
+
+
+def page_type(url: str, source_type: str) -> str:
+    path = urlparse(url).path.lower()
+    for category, terms in [('calendar', ('calendar',)), ('tuition_financial_aid', ('tuition', 'financial', 'cost', 'scholarship')),
+                            ('admissions', ('admission', 'apply')), ('policy', ('policy', 'policies', 'consent')),
+                            ('academic_program', ('program',)), ('student_services', ('student-life', 'services', 'registrar'))]:
+        if any(term in path for term in terms):
+            return category
+    return 'document' if source_type == 'pdf' else 'general'
+
+
 # --------------------------------------------------------------------------- #
 def extract_html(raw: bytes, url: str) -> dict:
     html = raw.decode("utf-8", errors="replace")
@@ -76,9 +111,12 @@ def extract_html(raw: bytes, url: str) -> dict:
         h1 = soup.find("h1")
         title = h1.get_text(" ", strip=True) if h1 else ""
 
+    content = soup.find('main') or soup.find('article') or soup
+    for unwanted in content.select('nav, footer, script, style, [role="navigation"]'):
+        unwanted.decompose()
     headings = [
         {"level": int(h.name[1]), "text": h.get_text(" ", strip=True)}
-        for h in soup.find_all(["h1", "h2", "h3", "h4"])
+        for h in content.find_all(["h1", "h2", "h3", "h4", "h5", "h6"])
         if h.get_text(strip=True)
     ]
 
@@ -139,22 +177,40 @@ def privacy_filter(text: str) -> tuple[str | None, dict, str]:
     return EMAIL.sub(repl, text), report, ""
 
 
-def main() -> None:
+def main(raw_dir: Path | None = None) -> None:
+    raw_dir = raw_dir or C.RAW
+    metadata = sorted(raw_dir.glob('*.meta.json'))
+    if not metadata:
+        raise SystemExit(f'No raw metadata found in {raw_dir}; existing output was preserved.')
+    for mp in metadata:
+        meta = json.loads(mp.read_text())
+        if not (raw_dir / meta['raw_file']).is_file():
+            raise SystemExit(f'Missing raw file for {mp}; existing output was preserved.')
     C.PROCESSED.mkdir(parents=True, exist_ok=True)
     for old in C.PROCESSED.glob("*.json"):
         old.unlink()                                  # reproducible rebuild
     seen_hash: dict[str, str] = {}
     rows = []
-    for mp in sorted(C.RAW.glob("*.meta.json")):
+    for mp in metadata:
         meta = json.loads(mp.read_text())
-        raw = (C.RAW / meta["raw_file"]).read_bytes()
+        raw = (raw_dir / meta["raw_file"]).read_bytes()
         try:
             d = (extract_pdf if meta["raw_file"].endswith(".pdf") else extract_html)(raw, meta["final_url"])
         except Exception as e:                        # keep going; log the failure
             rows.append([meta["doc_id"], meta["url"], "error", str(e), 0, 0, 0, 0])
             continue
 
-        text, pii, why = privacy_filter(d["text"])
+        # Apply the same privacy checks to every extracted field, including tables.
+        fields = [d['text'], d['title']] + [h['text'] for h in d['headings']] + d['tables']
+        _, pii, why = privacy_filter('\n'.join(fields))
+        cleaned = [privacy_filter(value)[0] for value in fields] if not why else []
+        text = cleaned[0] if cleaned else None
+        if cleaned:
+            d['title'] = cleaned[1]
+            count = len(d['headings'])
+            for heading, value in zip(d['headings'], cleaned[2:2 + count]):
+                heading['text'] = value
+            d['tables'] = cleaned[2 + count:]
         status, reason = "kept", ""
         if text is None:
             status, reason = "dropped", why
@@ -172,6 +228,11 @@ def main() -> None:
                 "source_type": d["source_type"], "crawled_at": meta["crawled_at"],
                 "last_modified": meta["last_modified"], "content_hash": meta["content_hash"],
                 "headings": d["headings"], "tables": d["tables"], "pii": pii, "text": text,
+                "source_url": meta["final_url"],
+                "page_type": page_type(meta['final_url'], d['source_type']),
+                "effective_date": effective_date(text),
+                "heading_path": heading_paths(d['headings']),
+                "normalized_content_hash": h,
             }
             if "pages" in d:
                 out["pages"] = d["pages"]
@@ -190,4 +251,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--raw-dir', type=Path, default=C.RAW)
+    main(parser.parse_args().raw_dir)

@@ -1,6 +1,6 @@
 requests
 beautifulsoup4
-lxml
+lxml[html-clean]
 trafilatura
 pymupdf
 pandas

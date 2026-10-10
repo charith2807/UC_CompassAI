@@ -13,3 +13,12 @@ __pycache__/
 *.pyc
 .DS_Store
 handoff/
+
+# local models, indexes, evaluation state, and handoff archives
+data/chunks/
+data/index/
+data/excluded/
+data/runtime/
+.cache/
+.pytest_cache/
+dist/

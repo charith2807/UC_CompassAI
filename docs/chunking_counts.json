@@ -1,0 +1,20 @@
+{
+  "fixed": {
+    "chunks": 668,
+    "min": 41,
+    "p50": 500.0,
+    "p95": 500.0,
+    "max": 500,
+    "mean": 438.29491017964074,
+    "tokenizer": "unicode-word-and-punctuation-proxy-v1"
+  },
+  "structure": {
+    "chunks": 2825,
+    "min": 3,
+    "p50": 24.0,
+    "p95": 500.0,
+    "max": 500,
+    "mean": 95.80743362831858,
+    "tokenizer": "unicode-word-and-punctuation-proxy-v1"
+  }
+}

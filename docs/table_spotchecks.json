@@ -1,0 +1,32 @@
+[
+  {
+    "doc_id": "30cf093febdc",
+    "source_url": "https://www.ucumberlands.edu/tuition-aid/tuition",
+    "checks": {
+      "$9,875": true,
+      "$335": true,
+      "$220": true,
+      "$355": true
+    },
+    "tables": 2
+  },
+  {
+    "doc_id": "1264ef1238b2",
+    "source_url": "https://www.ucumberlands.edu/tuition-aid/tuition/cost-attendance",
+    "checks": {
+      "$26,471": true,
+      "$31,648": true
+    },
+    "tables": 15
+  },
+  {
+    "doc_id": "da972d41960b",
+    "source_url": "https://www.ucumberlands.edu/academics/commencement",
+    "checks": {
+      "December 15": true,
+      "10:00 am": true,
+      "12:30 pm": true
+    },
+    "tables": 1
+  }
+]

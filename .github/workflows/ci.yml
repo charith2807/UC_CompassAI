@@ -1,0 +1,23 @@
+name: Pipeline checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python scripts/ci_tests.py
+        env:
+          PYTHONPYCACHEPREFIX: .cache/pycache
+          HF_HUB_OFFLINE: '1'
+      - name: Compile source without downloading models
+        run: python -m compileall -q crawler indexing retrieval generation app eval
+        env:
+          PYTHONPYCACHEPREFIX: .cache/pycache

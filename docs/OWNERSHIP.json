@@ -1,0 +1,165 @@
+{
+  "owners": {
+    "infra-owner": [
+      ".gitignore",
+      ".env.example",
+      "requirements.txt",
+      "requirements-lock.txt",
+      "requirements-crawl.txt",
+      "crawler/config.py",
+      "crawler/crawl.py",
+      "crawler/__init__.py",
+      "data/crawl_log.csv",
+      "data/seed_decisions.csv",
+      "data/pdf_sources.json",
+      ".github/workflows/ci.yml",
+      "scripts/ci_tests.py",
+      "tests/__init__.py",
+      "tests/fixtures.py",
+      "tests/test_ingestion_monitoring.py",
+      "generation/settings.py",
+      "generation/__init__.py",
+      "README.md",
+      "docs/PROJECT_WORKFLOW.md",
+      "docs/TEAM_STATUS.md",
+      "docs/OWNERSHIP.json",
+      "scripts/package_team.py",
+      "reports/00_proposal.md"
+    ],
+    "extraction-owner": [
+      "crawler/extract.py",
+      "crawler/normalize.py",
+      "data/extract_log.csv",
+      "docs/corpus_report.md",
+      "docs/corpus_counts.json",
+      "docs/normalization_exclusions.json",
+      "docs/table_spotchecks.json",
+      "scripts/table_spotcheck.py",
+      "reports/01_ingestion.md",
+      "tests/test_normalization.py"
+    ],
+    "chunking-owner": [
+      "indexing/__init__.py",
+      "indexing/chunking.py",
+      "indexing/embed.py",
+      "indexing/rechunk.py",
+      "docs/chunking_report.md",
+      "docs/chunking_counts.json",
+      "eval/__init__.py",
+      "eval/metrics.py",
+      "tests/test_chunking.py",
+      "tests/test_embed.py",
+      "scripts/download_models.py",
+      "reports/02_chunking.md"
+    ],
+    "vector-owner": [
+      "indexing/store.py",
+      "config/shared_config.yaml",
+      "docs/REPRODUCE.md",
+      "docs/deploy_notes.md",
+      "tests/test_store_integration.py",
+      "scripts/prepare_app.py",
+      "docs/app_verification.json"
+    ],
+    "retrieval-owner": [
+      "retrieval/*",
+      "eval/baselines.py",
+      "tests/test_retrieval.py",
+      "docs/retrieval_smoke.json",
+      "reports/04_retrieval_reranking.md",
+      "tests/test_program_scope.py",
+      "tests/test_conversation.py"
+    ],
+    "ui-owner": [
+      "app/*",
+      "generation/answer.py",
+      "generation/prompt.py",
+      "generation/grounding.py",
+      "generation/providers.py",
+      "tests/test_pipeline.py",
+      "tests/test_ui.py",
+      "tests/test_providers.py",
+      "scripts/smoke.py",
+      "reports/05_generation.md",
+      "scripts/conversation_smoke.py"
+    ],
+    "evaluation-owner": [
+      "eval/golden_set.jsonl",
+      "eval/split.py",
+      "eval/split_manifest.json",
+      "eval/freeze.py",
+      "eval/run_eval.py",
+      "eval/grade.py",
+      "eval/failures.md",
+      "docs/ETHICS.md",
+      "docs/eval_report.md",
+      "tests/test_refusal.py",
+      "tests/test_injection.py",
+      "reports/03_golden_set.md",
+      "reports/06_final_performance.md",
+      "reports/07_ethics.md",
+      "scripts/draft_golden.py",
+      "eval/calibrate.py",
+      "eval/test_guard.py",
+      "tests/test_eval_protocol.py"
+    ]
+  },
+  "branches": {
+    "infra-owner": "devops/repo-setup",
+    "extraction-owner": "extract/document-normalization",
+    "chunking-owner": "chunk/structure-aware",
+    "vector-owner": "vector/chromadb",
+    "retrieval-owner": "retrieval/dense-hybrid",
+    "ui-owner": "ui/streamlit-chat",
+    "evaluation-owner": "eval/golden-set"
+  },
+  "merge_order": [
+    "infra-owner",
+    "extraction-owner",
+    [
+      "chunking-owner",
+      "vector-owner"
+    ],
+    "retrieval-owner",
+    "ui-owner",
+    "evaluation-owner"
+  ],
+  "review_pairs": {
+    "infra-owner": [
+      "extraction-owner"
+    ],
+    "extraction-owner": [
+      "infra-owner"
+    ],
+    "vector-owner": [
+      "chunking-owner"
+    ],
+    "chunking-owner": [
+      "vector-owner"
+    ],
+    "retrieval-owner": [
+      "ui-owner",
+      "evaluation-owner"
+    ],
+    "ui-owner": [
+      "retrieval-owner"
+    ],
+    "evaluation-owner": [
+      "retrieval-owner"
+    ]
+  },
+  "excluded_from_packages": [
+    ".git",
+    ".venv",
+    ".cache",
+    "data/raw",
+    "data/processed",
+    "data/chunks",
+    "data/index",
+    "data/excluded",
+    "data/runtime",
+    "models",
+    "handoff",
+    "dist"
+  ]
+}

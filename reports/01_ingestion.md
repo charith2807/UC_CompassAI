@@ -1,63 +1,46 @@
 # Ingestion and extraction
 
-Local extraction run: October 10, 2026.
+## Extraction snapshot
 
-## Reproduce
+The historical extraction run processed 175 source files: 170 HTML pages and five PDFs. All 175 were kept at extraction time, with zero extraction errors. A later privacy normalization pass retained 171 documents: 166 HTML pages and five PDFs. It quarantined four directory-like pages after email de-obfuscation revealed more than five distinct addresses. Ten retained documents contain extracted HTML tables. The normalized corpus also records 336 candidate contact-name lines redacted by heuristic.
 
-From the repository root, with the supplied crawl corpus in the sibling data folder:
+| Stage or measure | Observed value |
+| --- | ---: |
+| Files processed by extraction | 175 |
+| HTML / PDF inputs | 170 / 5 |
+| Extraction errors | 0 |
+| Documents after privacy normalization | 171 |
+| Retained HTML / PDF | 166 / 5 |
+| Directory-like documents quarantined | 4 |
+| Retained documents with HTML tables | 10 |
+| Candidate contact-name lines redacted | 336 |
+
+These are counts from the saved extraction and normalization artifacts (`data/extract_log.csv`, `docs/corpus_counts.json`, and `docs/normalization_exclusions.json`). They describe different stages and should not be collapsed into a single “documents kept” count.
+
+## Method and metadata
+
+HTML extraction uses Trafilatura and pandas table parsing; headings are collected from the main content region. PDF text uses PyMuPDF. Normalized records include source URL, page type, explicit ISO effective date when found (otherwise null), heading paths, sections, crawl timestamp, content hashes, and normalization version. A crawl timestamp is not an effective date. Page types are inferred from URL patterns and require review before they are used as a substantive policy filter.
+
+Normalization removes non-role email addresses and contact-block name candidates, rejects SSN-like patterns, and quarantines pages with directory-like email counts. Institutional telephone numbers are retained. These pattern checks are screening, not a complete privacy audit: organization names may be over-redacted and personal names inside prose may remain. A human privacy review is still required before any public release of corpus artifacts.
+
+## Provenance and known limits
+
+The extraction inputs include a manually supplied two-page Future Patriot Guide PDF linked from a university prospect site. Acquisition provenance is recorded, but crawler DNS was unavailable, robots compliance was not independently verified, and the PDF's effective date is unknown. Verify any advertised tuition against a current official tuition page. One older student-learning report is archived outside the active corpus. Several other PDFs are dated 2017–2018 and need currency review.
+
+The saved Academic Calendar text is about 700 characters and contains introductory material and semester headings, not usable deadline details. Do not answer specific deadline questions from it. PDF tables are plain text rather than structured tables. Automated comparisons on Tuition, Cost of Attendance, and Commencement values matched the saved HTML; those checks do not verify every header, row, footnote, or current applicability. See `docs/table_spotchecks.json` and `docs/corpus_report.md`.
+
+## Reproduction
+
+With the private raw files available in `../data/raw/` from the project directory:
 
 ```bash
-.venv/bin/python -m pip install -r requirements-crawl.txt
 .venv/bin/python -m crawler.extract --raw-dir ../data/raw
+.venv/bin/python -m crawler.normalize
+.venv/bin/python scripts/table_spotcheck.py --raw-dir ../data/raw
 ```
 
-## Results
+The project does not publish raw or normalized source documents. See [../docs/REPRODUCE.md](../docs/REPRODUCE.md) for environment setup and privacy handling.
 
-| Measure | Result |
-| --- | ---: |
-| Raw documents processed | 175 |
-| Documents kept | 175 |
-| Dropped documents / extraction errors | 0 |
-| HTML documents | 170 |
-| PDF documents | 5 |
-| Documents with extracted HTML tables | 11 |
-| Explicit effective dates recognized | 0 |
-| Academic Calendar normalized text characters | 700 |
+## Evidence status
 
-Documents include source_url (with legacy url retained), page_type, effective_date,
-heading_path, crawl timestamp, raw content hash, and normalized content hash.
-heading_path contains hierarchical paths for each heading in source order.
-Page types are inferred from URL keywords and need human review before use as filters.
-Only explicitly labelled ISO effective dates are recognized; unknown dates are null.
-The last-modified timestamp is retained separately and is not treated as an effective date.
-
-HTML extraction uses Trafilatura and pandas tables. Heading metadata is collected from
-the main/article region with navigation removed. PDF text uses PyMuPDF. Normalized
-text hashes detect exact duplicates. Privacy checks cover text, title, tables, and
-headings; SSN-like patterns and directory-like email counts cause rejection, while
-non-role email addresses are redacted. Verification confirmed all 175 saved documents
-have required metadata and no unredacted non-role emails or SSN-like patterns in those
-extracted fields. This is pattern-based screening, not a complete personal-data audit.
-
-## Remaining limitations
-
-- The fifth PDF is the two-page Future Patriot Guide, linked from the university
-  prospective-student site: https://pats2032.ucumberlands.edu/content/pdf/PatriotGuide.pdf.
-  The user downloaded it using curl. Acquisition metadata records that origin, uses
-  file modification time as the download timestamp, and records robots verification
-  as false; crawler DNS access was unavailable. Its effective date is unknown.
-  Advertised tuition must be cross-checked against the current tuition page.
-- The 2015–2016 student-learning disclosure was archived in the sibling
-  `data/excluded/` folder and removed from the active corpus.
-- The saved Academic Calendar HTML contains semester headings and introductory text,
-  but no readable deadline details. Do not answer deadline questions from this page.
-- PDF tables are not preserved as structured tables.
-- Personal names and contact blocks still need human privacy review.
-- Some PDFs date from 2017–2018; corpus currency needs review.
-- Dependencies are not pinned. The local Python 3.9 SSL build produces an urllib3
-  LibreSSL compatibility warning; extraction from disk completed successfully.
-
-## AI usage
-
-Codex assisted with code updates, local execution, metadata validation, and this report.
-No evaluation gold answers or chatbot performance claims were generated by this work.
+Counts above are recorded outputs, not a claim that every retained page is current or free of all personal data. No new crawl was performed during application assembly. Personal-data and currency review remain outstanding.

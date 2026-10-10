@@ -1,7 +1,9 @@
-# Cumberlands Compass AI — Technical Documentation (`test1` branch)
+# Cumberlands Compass AI — Technical Documentation (`test1` / `KarunaTest`)
 
 > Scope: this document describes the code on branch `test1` at commit `e0536ae`
 > ("commit 2 additional stuff"), which sits two commits ahead of `main` (`35c530c`).
+> Branch `KarunaTest` adds the B1–B3 fixes (`4a662b1`) and commit 3 (`0f0b474`, DSO
+> contact handling, merged as `b0c3993`); those additions are described where relevant.
 > Relative to `main`, the branch adds/changes 91 files (+5,531 / −64 lines) and turns
 > the crawler-only repository into a complete retrieval-augmented generation (RAG)
 > application with an evaluation harness.
@@ -366,8 +368,13 @@ It holds user-derived slots only, never assistant facts.
   - `subject`: one of 14 hard-coded subjects; `IT`/`AI` acronyms are case-sensitive.
   - `audience`: international or domestic.
   - `term`, `year`.
-- **Topic detection**: tuition, library, housing, dining, calendar, financial aid,
-  admissions, IT support, parking, commencement.
+- **Topic detection**: DSO (Designated School Official, added in commit 3), tuition,
+  library, housing, dining, calendar, financial aid, admissions, IT support, parking,
+  commencement. Contact words (contact, email, phone, telephone, office) count as
+  facets, so "contact information" after a DSO question inherits the DSO topic.
+- **Non-program masking** (B1 fix): honorifics ("Ms. Smith") and job titles ("executive
+  director", "associate dean") are blanked before slot matching, and `IT`/`AI` are ignored
+  in all-caps sentences.
 - **Inheritance decision**:
   - A query inherits previous slots when it is a reference ("what about", "and", "it",
     "that"), short (≤ 10 words and not a wh-question), elliptical ("why?"), names a facet
@@ -389,7 +396,15 @@ It holds user-derived slots only, never assistant facts.
 - A fee question with no format → "online or executive/hybrid?"
 - Otherwise it returns `scope = {degree, subject, format, tuition}` and expands `IT`/`AI`
   in the search query.
+- **DSO questions** (commit 3) skip program scoping entirely, since a DSO is a student
+  service and not a program attribute. A DSO question with no detail word (contact, who,
+  role, OPT, I-20…) gets the clarification *"Do you need contact information for your
+  Designated School Official (DSO), or an explanation of what a DSO does?"*
+  (`pending = dso_detail`).
 - `retrieval_question` expands curriculum questions into a course-requirements query.
+  A DSO + contact question (`CONTACT`: contact, email, phone, reach, office, where, who)
+  is replaced by the fixed sentence *"If not sure which DSO to contact email the DSO
+  listed on current I-20 document"*.
 
 ---
 
@@ -418,6 +433,10 @@ It holds user-derived slots only, never assistant facts.
      `rerank_score ≥ refusal_threshold`; without it, keep `initial_score > 0`.
    - Then the audience filter, the program filter, and for fee questions a filter
      requiring fee text and excluding "career / salary / outcome" headings.
+   - **`contact_evidence`** (commit 3): for DSO contact questions, each chunk is cut down
+     to the sentences that mention the DSO *and* match "email the/your/a (assigned) DSO"
+     or "contact your assigned DSO by email". Chunks with no such sentence are dropped,
+     so the generator sees contact routes, not OPT/CPT procedures.
    - No evidence → tailored refusal. Tuition and source-filter conflicts get their own
      messages.
 9. **Retrieval-only mode**: return up to 5 excerpts (25 words each) with citations and no
@@ -455,6 +474,10 @@ citation_repair_attempts?`.
   - Every claim needs evidence; use paraphrases, never more than 25 copied words.
   - Refuse when evidence is ambiguous, conflicting or temporally unsupported.
   - Refer individualized decisions; disclose no personal data.
+- Contact rules (commit 3): answer the requested information type; say explicitly when
+  an email or phone is missing or redacted; for an assigned DSO, prefer how to identify
+  or contact them over OPT/CPT procedures, and never name an individual or invent a
+  contact.
 - Tuition rules: answer only the current resolved question, use the correct row, don't
   apply online rates to executive programs, don't compute totals, and distinguish tuition
   from fees.
@@ -556,12 +579,13 @@ results in edge cases or evaluation skew. **Low** = maintainability or efficienc
 | B10 | **Low** | `indexing/rechunk.py:19-20` | **Rebuild is not atomic.** `clear_old` deletes the old vectors before `store.add`. A crash part-way through the upsert leaves a partial collection with no rollback (the "embed first" protection only covers model failures). Also, `orphan_count` is always 0 because an assertion has already enforced equality. |
 | B11 | **Low** | `retrieval/trace.py:27` | With `use_rerank=False`, results are cut to a hard-coded `[:5]` instead of `rerank_top_k`. |
 | B12 | **Low** | `app/streamlit_app.py:68-84` | **Failed turns pollute later context.** If the service throws, the user message is already in `session_state.messages` with no assistant reply. The next turn rebuilds context by replaying that failed message as a user turn. |
+| B13 | **Medium** **[verified]** | `retrieval/query.py` `CONTACT`, `retrieval_question`, `contact_evidence` (commit 3) | **DSO definition questions are treated as contact requests.** `CONTACT` includes `who` and `where`, so `"Who is a DSO?"` (asking what the role is) gets the fixed contact retrieval query, and `contact_evidence` strips each chunk down to the "email the DSO listed on your I-20" sentence. The explanation of the role is removed before generation. Fix: drop `who`/`where` from `CONTACT`, or require them next to "contact" words ("who do I contact"), and leave definition questions ("who is a DSO", "what is a DSO") unfiltered. |
 
 ### 12.2 Design issues
 
 | # | Area | Finding |
 |---|---|---|
-| D1 | **Domain logic hard-coded in the generic pipeline** | `AnswerService.answer` rewrites tuition questions to fixed strings. `shared_tuition_matches` depends on literal heading text (`"executive programs"`, `"graduate - master's |"`, `"| online |"`) and a three-subject allow-list. The live smoke test asserts specific dollar amounts (`549`, `355`, `749`). This fits the current layout of one page and will fail silently when the site changes. Move it into data-driven rules or a dedicated "tuition table" tool, and test against fixtures. |
+| D1 | **Domain logic hard-coded in the generic pipeline** | `AnswerService.answer` rewrites tuition questions to fixed strings. `shared_tuition_matches` depends on literal heading text (`"executive programs"`, `"graduate - master's |"`, `"| online |"`) and a three-subject allow-list. The live smoke test asserts specific dollar amounts (`549`, `355`, `749`). This fits the current layout of one page and will fail silently when the site changes. Move it into data-driven rules or a dedicated "tuition table" tool, and test against fixtures. Commit 3 repeats the pattern: DSO contact questions are rewritten to a sentence copied from one page, and `contact_evidence` only keeps sentences matching that page's wording ("email the DSO…"). If the wording changes, every DSO contact question is refused for lack of evidence. |
 | D2 | **Regex state machine for conversation** | `advance()` combines about 15 interacting booleans (`reference`, `short`, `pending`, `standalone`, `topic_change`, `unclear`, `inherit`, `selector_reply`, `comparison`, …). The 16 conversation tests and 11 program-scope tests show how many special cases are being patched one at a time. B1 comes from this approach. Consider a small structured slot-extraction step (an LLM with a JSON schema, or a classifier) plus a table-driven test matrix. |
 | D3 | **Config declared but not used, values duplicated in code** | `embedding_dimension`, `normalize_embeddings` and `distance_metric` are in YAML, but `embed.py` hard-codes `384` and cosine, and `store.py` hard-codes cosine. `llm_model`, `input_cost_per_million` and `output_cost_per_million` are not read at all (`provider_models`/`provider_prices` are used instead). Changing the YAML gives a false sense of control. |
 | D4 | **Two page-type taxonomies** | `extract.page_type()` (`tuition_financial_aid`, `academic_program`, `student_services`, …) and `normalize.classify()` (`tuition`, `financial_aid`, `academics`, …) disagree. Normalization overwrites the first, so the extract version is effectively dead code, but anyone reading `extract.py` will be misled. |
@@ -636,14 +660,14 @@ results in edge cases or evaluation skew. **Low** = maintainability or efficienc
 | `scripts/ci_tests.py` | Runs each test file only when its dependency files exist. Prints "Deferred until dependent PR merges" otherwise; supports staged role-by-role merging. |
 | `scripts/package_team.py` | Builds per-role zip handoffs (owned files, PR guide, exact `git add`/commit/`gh pr create` commands, SHA-256 manifest). Redacts home paths in log copies and validates that each file has exactly one owner using `docs/OWNERSHIP.json`. |
 
-### Tests (95 methods, `unittest`; 91 before the B1–B3 fixes)
+### Tests (98 methods on `KarunaTest`, `unittest`; 91 on `test1` before the B1–B3 fixes and commit 3)
 
 | File | # | Covers |
 |---|---:|---|
 | `test_pipeline.py` | 18 | Chunk IDs, windows, RRF, rerank cap, stale deletion, citation validation, metrics, split, unverified-eval blocking, no-key mode |
-| `test_conversation.py` | 16 | Multi-turn slot inheritance, resets, clarifications, per-session isolation |
-| `test_providers.py` | 13 | Quote schema, whitespace spans, table units, repair bound, provider order, fallback, pinning, partial answers |
-| `test_program_scope.py` | 11 | IT acronym, degree changes, executive vs online tuition, scope before truncation |
+| `test_conversation.py` | 18 | Multi-turn slot inheritance, resets, clarifications, per-session isolation |
+| `test_providers.py` | 15 | Quote schema, whitespace spans, table units, repair bound, provider order, fallback, pinning, partial answers, verbatim-copy guard |
+| `test_program_scope.py` | 14 | IT acronym, degree changes, executive vs online tuition, scope before truncation, DSO clarification and contact evidence |
 | `test_eval_protocol.py` | 8 | Test receipt, calibration integrity, snapshot tamper detection, grading completeness, outage handling |
 | `test_refusal.py` | 7 | Credential, aid, immigration, weak-evidence and service refusals |
 | `test_chunking.py`, `test_injection.py`, `test_normalization.py`, `test_ingestion_monitoring.py` | 3 each | Chunking, injection, table alignment, crawler politeness and log schema |
@@ -716,7 +740,7 @@ The evaluation sequence (after human verification) is in `docs/eval_report.md`:
 |---|---|
 | Crawl, extraction and normalization | Done: 175 extracted → 171 retained (166 HTML, 5 PDF); 4 quarantined; manual table, privacy and calendar review pending |
 | Chunking, embedding and indexes | Done: 668 fixed and 2,825 structure chunks; zero orphans |
-| Retrieval and UI | Real-backend smoke tests passed for all three modes; Groq generation verified locally; generated curriculum answers not yet verified (rate-limited) |
+| Retrieval and UI | Real-backend smoke tests passed for all three modes; Groq generation verified locally; generated curriculum answers not yet verified (rate-limited); DSO contact smoke check passed with a cited Groq answer (commit 3) |
 | Golden set | 40 drafts, **0/40 human-verified**, gold answers null |
 | Calibration, freeze, test run | **Not done**; threshold 0.5 is provisional and uncalibrated |
 | Failure analysis | 0 of 15 required rows labelled |

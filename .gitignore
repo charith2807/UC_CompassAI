@@ -1,0 +1,15 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# raw / processed scraped content (never published, per proposal)
+data/raw/
+data/processed/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+handoff/

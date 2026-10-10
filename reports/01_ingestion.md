@@ -15,11 +15,11 @@ From the repository root, with the supplied crawl corpus in the sibling data fol
 
 | Measure | Result |
 | --- | ---: |
-| Raw documents processed | 174 |
-| Documents kept | 174 |
+| Raw documents processed | 175 |
+| Documents kept | 175 |
 | Dropped documents / extraction errors | 0 |
 | HTML documents | 170 |
-| PDF documents | 4 |
+| PDF documents | 5 |
 | Documents with extracted HTML tables | 11 |
 | Explicit effective dates recognized | 0 |
 | Academic Calendar normalized text characters | 700 |
@@ -35,16 +35,20 @@ HTML extraction uses Trafilatura and pandas tables. Heading metadata is collecte
 the main/article region with navigation removed. PDF text uses PyMuPDF. Normalized
 text hashes detect exact duplicates. Privacy checks cover text, title, tables, and
 headings; SSN-like patterns and directory-like email counts cause rejection, while
-non-role email addresses are redacted. Verification confirmed all 174 saved documents
+non-role email addresses are redacted. Verification confirmed all 175 saved documents
 have required metadata and no unredacted non-role emails or SSN-like patterns in those
 extracted fields. This is pattern-based screening, not a complete personal-data audit.
 
 ## Remaining limitations
 
-- A fifth PDF is still required. A university-hosted student-learning disclosure
-  candidate is https://www.ucumberlands.edu/sites/default/files/downloads/academics/business/pd-acct.pdf.
-  The local crawler could not download it because robots.txt was unreachable in this
-  environment. Its currency and relevance must be reviewed before inclusion.
+- The fifth PDF is the two-page Future Patriot Guide, linked from the university
+  prospective-student site: https://pats2032.ucumberlands.edu/content/pdf/PatriotGuide.pdf.
+  The user downloaded it using curl. Acquisition metadata records that origin, uses
+  file modification time as the download timestamp, and records robots verification
+  as false; crawler DNS access was unavailable. Its effective date is unknown.
+  Advertised tuition must be cross-checked against the current tuition page.
+- The 2015–2016 student-learning disclosure was archived in the sibling
+  `data/excluded/` folder and removed from the active corpus.
 - The saved Academic Calendar HTML contains semester headings and introductory text,
   but no readable deadline details. Do not answer deadline questions from this page.
 - PDF tables are not preserved as structured tables.

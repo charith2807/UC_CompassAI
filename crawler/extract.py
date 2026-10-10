@@ -236,6 +236,9 @@ def main(raw_dir: Path | None = None) -> None:
             }
             if "pages" in d:
                 out["pages"] = d["pages"]
+            for field in ('acquisition_method', 'timestamp_basis', 'robots_verified'):
+                if field in meta:
+                    out[field] = meta[field]
             (C.PROCESSED / f"{meta['doc_id']}.json").write_text(
                 json.dumps(out, ensure_ascii=False, indent=2))
         rows.append([meta["doc_id"], meta["url"], status, reason, len(text or ""),

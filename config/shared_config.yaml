@@ -1,0 +1,37 @@
+schema_version: 1
+processed_dir: data/processed
+chunk_size: 500
+chunk_overlap: 75
+chunk_version: v1
+strategy: structure
+embedding_model: sentence-transformers/all-MiniLM-L6-v2
+embedding_revision: c9745ed1d9f207416be6d2e6f8de32d1f16199bf
+embedding_dimension: 384
+normalize_embeddings: true
+distance_metric: cosine
+reranker_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+reranker_revision: 233902d25c440f23af6f7d6e94d2946bac0bee0a
+candidate_pool: 20
+rerank_top_k: 5
+rrf_k: 60
+# Provisional safety gate, NOT calibrated. Calibrate on verified dev data only.
+refusal_threshold: 0.5
+threshold_status: UNCALIBRATED
+llm_model: gpt-4o-mini
+# Configure current pricing explicitly; unknown cost is reported as null.
+input_cost_per_million: null
+output_cost_per_million: null
+
+# User-authorized alternative providers; app prefers Groq.
+# Graded evaluation must replace auto with one explicit provider before freezing.
+llm_provider: auto
+provider_order: [groq, openai, gemini]
+provider_timeout_seconds: 30
+provider_models:
+  groq: openai/gpt-oss-20b
+  openai: gpt-4o-mini
+  gemini: gemini-3.8-flash
+provider_prices:
+  groq: {input_per_million: null, output_per_million: null}
+  openai: {input_per_million: null, output_per_million: null}
+  gemini: {input_per_million: null, output_per_million: null}

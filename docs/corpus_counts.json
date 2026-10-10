@@ -1,0 +1,20 @@
+{
+  "documents": 171,
+  "types": {
+    "html": 166,
+    "pdf": 5
+  },
+  "page_types": {
+    "academics": 76,
+    "calendar": 1,
+    "financial_aid": 12,
+    "student_life": 35,
+    "pdf": 5,
+    "tuition": 2,
+    "general": 17,
+    "admissions": 20,
+    "policy": 3
+  },
+  "documents_with_tables": 10,
+  "contact_names_redacted": 336
+}

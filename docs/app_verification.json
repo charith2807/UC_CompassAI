@@ -1,0 +1,252 @@
+{
+  "verified_at": "2026-10-10T20:57:18.312021+00:00",
+  "purpose": "Component smoke evidence only; not graded golden evaluation",
+  "tests_passed": 89,
+  "http_health": "ok",
+  "generation_mode": "Groq openai/gpt-oss-20b; clearly labeled source-excerpt fallback on provider errors",
+  "models": {
+    "embedding": "c9745ed1d9f207416be6d2e6f8de32d1f16199bf",
+    "reranker": "233902d25c440f23af6f7d6e94d2946bac0bee0a"
+  },
+  "indexes": {
+    "compass": {
+      "indexed_count": 2825,
+      "orphan_count": 0,
+      "dimension": 384,
+      "distance_metric": "cosine",
+      "l2_normalized": true,
+      "strategy": "structure"
+    },
+    "compass_fixed": {
+      "indexed_count": 668,
+      "orphan_count": 0,
+      "dimension": 384,
+      "distance_metric": "cosine",
+      "l2_normalized": true,
+      "strategy": "fixed"
+    }
+  },
+  "backend_checks": [
+    {
+      "check": "cited_tuition",
+      "passed": true,
+      "candidate_count": 20,
+      "selected_count": 5
+    },
+    {
+      "check": "credential_refusal",
+      "passed": true,
+      "candidate_count": null,
+      "selected_count": 0
+    },
+    {
+      "check": "aid_referral",
+      "passed": true,
+      "candidate_count": null,
+      "selected_count": 0
+    },
+    {
+      "check": "weak_evidence_refusal",
+      "passed": true,
+      "candidate_count": 20,
+      "selected_count": 5
+    },
+    {
+      "check": "tuition_filter",
+      "passed": true,
+      "candidate_count": 20,
+      "selected_count": 5
+    }
+  ],
+  "ui_checks": [
+    {
+      "check": "hybrid_tuition",
+      "passed": true,
+      "citations": 5,
+      "candidates": 20,
+      "latency_ms": 494.13716600000026
+    },
+    {
+      "check": "bm25_tuition",
+      "passed": true,
+      "citations": 5,
+      "candidates": 20,
+      "latency_ms": 230.49254200000036
+    },
+    {
+      "check": "dense_tuition",
+      "passed": true,
+      "citations": 5,
+      "candidates": 20,
+      "latency_ms": 281.71208400000046
+    },
+    {
+      "check": "refused",
+      "passed": true
+    },
+    {
+      "check": "referral",
+      "passed": true
+    }
+  ],
+  "phd_ui_regressions": [
+    {
+      "mode": "hybrid",
+      "query": "Give me general PhD details",
+      "passed": true,
+      "reason": "clarification_needed",
+      "citation_urls": []
+    },
+    {
+      "mode": "hybrid",
+      "query": "Tell me about PhD in IT",
+      "passed": true,
+      "reason": null,
+      "citation_urls": [
+        "https://www.ucumberlands.edu/academics/executive/phd-information-technology"
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "query": "I mean the IT field",
+      "passed": true,
+      "reason": null,
+      "citation_urls": [
+        "https://www.ucumberlands.edu/academics/executive/phd-information-technology"
+      ]
+    },
+    {
+      "mode": "bm25",
+      "query": "Give me general PhD details",
+      "passed": true,
+      "reason": "clarification_needed",
+      "citation_urls": []
+    },
+    {
+      "mode": "bm25",
+      "query": "Tell me about PhD in IT",
+      "passed": true,
+      "reason": null,
+      "citation_urls": [
+        "https://www.ucumberlands.edu/academics/executive/phd-information-technology"
+      ]
+    },
+    {
+      "mode": "bm25",
+      "query": "I mean the IT field",
+      "passed": true,
+      "reason": null,
+      "citation_urls": [
+        "https://www.ucumberlands.edu/academics/executive/phd-information-technology"
+      ]
+    },
+    {
+      "mode": "dense",
+      "query": "Give me general PhD details",
+      "passed": true,
+      "reason": "clarification_needed",
+      "citation_urls": []
+    },
+    {
+      "mode": "dense",
+      "query": "Tell me about PhD in IT",
+      "passed": true,
+      "reason": null,
+      "citation_urls": [
+        "https://www.ucumberlands.edu/academics/executive/phd-information-technology"
+      ]
+    },
+    {
+      "mode": "dense",
+      "query": "I mean the IT field",
+      "passed": true,
+      "reason": null,
+      "citation_urls": [
+        "https://www.ucumberlands.edu/academics/executive/phd-information-technology"
+      ]
+    }
+  ],
+  "restrictive_category_guidance_passed": true,
+  "conversation_ui_checks": [
+    {
+      "query": "tuition fee for PhD",
+      "passed": true,
+      "reason": "clarification_needed",
+      "search_query": null,
+      "pending": "program"
+    },
+    {
+      "query": "Information technology",
+      "passed": true,
+      "reason": "clarification_needed",
+      "search_query": null,
+      "pending": "format"
+    },
+    {
+      "query": "executive",
+      "passed": true,
+      "reason": "insufficient_matching_evidence",
+      "search_query": "Ph.D. in Information Technology. tuition fee for PhD Information technology executive",
+      "pending": null
+    },
+    {
+      "query": "What are its requirements?",
+      "passed": true,
+      "reason": null,
+      "search_query": "Ph.D. in Information Technology. Ph.D. in Information Technology executive What are its requirements?",
+      "pending": null
+    },
+    {
+      "query": "done",
+      "passed": true,
+      "reason": "conversation_end",
+      "search_query": null,
+      "pending": null
+    },
+    {
+      "query": "What are the library hours?",
+      "passed": true,
+      "reason": null,
+      "search_query": "What are the library hours?",
+      "pending": null
+    },
+    {
+      "query": "Where is it?",
+      "passed": true,
+      "reason": "insufficient_matching_evidence",
+      "search_query": "library Where is it?",
+      "pending": null
+    }
+  ],
+  "broader_conversation_verification": {
+    "unit_matrix_cases": 25,
+    "live_ui_turns": 29,
+    "generated_turns": 16,
+    "rate_limited_turns": 3,
+    "retriever_modes": [
+      "hybrid",
+      "bm25",
+      "dense"
+    ],
+    "UI_exceptions": 0,
+    "generation_or_grounding_errors": 0,
+    "scope_checks": [
+      "degree switches",
+      "subject and format corrections",
+      "audience and term/year replacement",
+      "graduate-source exclusion for undergraduate deadlines",
+      "completion and reset",
+      "credential refusal",
+      "aid referral",
+      "weak-evidence refusal"
+    ],
+    "is_graded_evaluation": false
+  },
+  "table_alignment": {
+    "saved_documents_repaired": 1,
+    "fixed_vectors_updated": 7,
+    "structure_vectors_updated": 28,
+    "missing_orphan_chunks": 0,
+    "recrawl": false
+  }
+}

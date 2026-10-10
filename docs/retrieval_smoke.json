@@ -1,0 +1,40 @@
+{
+  "kind": "actual BM25 smoke, not golden evaluation",
+  "chunk_count": 2825,
+  "query": "What is on-campus undergraduate tuition?",
+  "candidate_count": 20,
+  "search_ms": 4.895458000000019,
+  "top": [
+    {
+      "chunk_id": "86555b2c4deb_structure_v1_0002",
+      "source_url": "https://www.ucumberlands.edu/sites/default/files/2018-08/CACREPVitalStatistics-2017.pdf",
+      "bm25_score": 13.223592971342452,
+      "page_type": "pdf"
+    },
+    {
+      "chunk_id": "30cf093febdc_structure_v1_0025",
+      "source_url": "https://www.ucumberlands.edu/tuition-aid/tuition",
+      "bm25_score": 12.60736524104615,
+      "page_type": "tuition"
+    },
+    {
+      "chunk_id": "1091f4abced0_structure_v1_0002",
+      "source_url": "https://www.ucumberlands.edu/sites/default/files/2018-08/Cooperating-Teacher-Guide-Fall-2018.cleaned.pdf",
+      "bm25_score": 12.53410521746001,
+      "page_type": "pdf"
+    },
+    {
+      "chunk_id": "30cf093febdc_structure_v1_0007",
+      "source_url": "https://www.ucumberlands.edu/tuition-aid/tuition",
+      "bm25_score": 12.243927713570287,
+      "page_type": "tuition"
+    },
+    {
+      "chunk_id": "1091f4abced0_structure_v1_0001",
+      "source_url": "https://www.ucumberlands.edu/sites/default/files/2018-08/Cooperating-Teacher-Guide-Fall-2018.cleaned.pdf",
+      "bm25_score": 11.792688948608479,
+      "page_type": "pdf"
+    }
+  ],
+  "page_type_filter_passed": true
+}

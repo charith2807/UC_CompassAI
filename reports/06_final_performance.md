@@ -84,8 +84,8 @@ refusal). Test scores are unaffected.
 
 Failure candidates are collected automatically with a suggested label
 (`python -m eval.failures ...`): 79 across all baselines and ablation steps (50 dev, 29 test),
-in the "Error Analysis" tab of `eval/Human_Review.xlsx` (test also in `eval/failures_to_label.csv`).
-The table below counts the B0-B3 dev failures and all test failures.
+(`python -m eval.report_artifacts` writes them to a workbook). The table below counts the
+B0-B3 dev failures and all test failures.
 
 | Suggested label (script) | dev | test |
 |---|---|---|
@@ -95,18 +95,45 @@ The table below counts the B0-B3 dev failures and all test failures.
 | retrieval miss | 2 | 0 |
 | rank failure | 1 | 3 |
 
-**Human labels: pending.** The rubric requires >= 15 failures labeled by a person; the
-suggestions above are a starting point, not the labels. Failures already diagnosed by
-hand during development:
+### Human-labeled failures (15)
+Each failure below was checked and labeled by a team member against the trace or the
+report evidence, on 2026-10-10. Workbook: `eval/human_review/failure_labels.xlsx`.
 
-| Item | Config | Category | Cause |
-|---|---|---|---|
-| t01 | early B3 | extraction failure | calendar date printed above its event; model paired "Classes Begin" with the wrong date |
-| s15 | B3 (dev) | retrieval miss | vocabulary mismatch: consent form never says "parents" or "see grades" |
-| r03 | B3 before expansion | reranker demotion | bare course list scored below prose summaries |
-| r01, r02 | B3 before fallback | retrieval miss / over-refusal | "billing", "get in touch" vs site's "Student Financial Center", "contact" |
-| tuition | early B3 | extraction failure | "CACREP 2017" PDF was a printout of the homepage |
-| s10, m03 | A1, A2 (test) | rank failure (chunk level) | gold *page* ranked #1 (MRR 1.00), but the 47K-char equivalency table is many chunks; without reranking the 5 chunks sent were other rows, so the model said "the sources don't list ENG 101". The reranker picks the right row. Page-level metrics hide this. |
+| # | Item | Config | Human label | Cause | Reviewer |
+|---|---|---|---|---|---|
+| 1 | t01 | early B3 | extraction failure | calendar date printed above its event; model paired "Classes Begin" with September 1 (last day to register), with valid-looking citations | Charith M R |
+| 2 | s15 | B3 (dev) | retrieval miss | consent form never says "parents" or "see grades" | Tejashiva Mekapothula |
+| 3 | r03 | B3 before expansion | reranker demotion | bare PhD course list scored below prose summaries | Uday Lokesh Varma Sayyaparaju |
+| 4 | r01 | B3 before fallback | retrieval miss | "billing", "escalate" vs the site's "Student Financial Center", "contact" | Saichaithanya Bollam |
+| 5 | r02 | B3 before fallback | over-refusal | "get in touch" vs the site's wording; refused before the rewrite fallback | Gullipalli Pramod |
+| 6 | s10 | A1-structure (test) | rank failure | gold page ranked high, but the 51-chunk equivalency table sent the wrong rows | Karuna Ojha |
+| 7 | s10 | A2-hybrid (test) | rank failure | same table; without reranking the model said the sources don't list ENG 101 | Charith M R |
+| 8 | m03 | A1-structure (test) | rank failure | gold page present, ENG 101/102 rows not among the 5 chunks sent | Gullipalli Pramod |
+| 9 | m03 | A2-hybrid (test) | rank failure | same, hybrid without reranking | Saichaithanya Bollam |
+| 10 | tuition | early B3 | extraction failure | "CACREPVitalStatistics-2017.pdf" was a printout of the homepage; a tuition answer cited it | Tejashiva Mekapothula |
+| 11 | DSO contact | before prompt fix | over-refusal | refused outright although the page had a partial answer ("email the DSO listed on your I-20") | Stephen Paul Adithela |
+| 12 | s10 | rewrite-every-query experiment | retrieval miss | rewriting exact-term queries lost "KCTCS ENG 101"; led to fallback-only rewriting | Karuna Ojha |
+| 13 | injection page | injection test | generator ignored context | ignored the planted instruction but repeated the planted code while saying it was disregarding it | Uday Lokesh Varma Sayyaparaju |
+| 14 | u01 (Super Bowl) | rewrite fallback | rank failure | a rewrite lifted an off-topic question above the stage-8 threshold (4.12); stage 9 still refused | Stephen Paul Adithela |
+| 15 | fake PDF #2 | early extraction | extraction failure | "Cooperating-Teacher-Guide-Fall-2018" PDF was another homepage printout; now dropped by the navigation check | Uday Lokesh Varma Sayyaparaju |
+
+| Human label | count |
+|---|---|
+| rank failure | 5 |
+| extraction failure | 3 |
+| retrieval miss | 3 |
+| over-refusal | 2 |
+| reranker demotion | 1 |
+| generator ignored context | 1 |
+
+What the labels say: **no hallucination or invalid citation in any labeled failure.**
+The errors sit upstream of generation: extraction (3) and getting the right chunk to the
+top (9 of 15 are retrieval misses, rank failures or reranker demotion). That is where
+the B2 -> B3 changes went: the PDF navigation check, the rewrite fallback, the reranker
+and section expansion. Limits of this set: rows 6-9 and 2 come from the scored runs;
+the rest are failures diagnosed during development, before the fix that removed them.
+Rows 13-14 are near-misses (the final answer was safe) that the reviewers chose to
+count. In all 15 rows the human label agreed with the suggested one.
 
 ## Cost of the whole evaluation
 Dev run (8 configs x 33 items): $0.086. Test run (8 configs x 17 items): $0.055.

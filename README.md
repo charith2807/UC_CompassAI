@@ -60,25 +60,11 @@ reports/   00_proposal ... 07_ethics
 app.py     Streamlit UI
 ```
 
-## Known limitations
-- Term course schedules and the full catalog are not in the corpus (catalog blocks
-  scripts); personal records are out of scope by design.
-- Current university PDFs live on SharePoint (robots.txt disallows crawling); seven
-  were added by hand and must be refreshed manually.
-- Effective dates are heuristic: reliable for PDFs and data tables, noisy on ordinary
-  pages.
-- The rewrite fallback can occasionally lift an off-topic question past the stage-8
-  threshold; the generator's "not in sources" check is the backstop.
-- Answer correctness is scored by required strings (`must_include`), a transparent but
-  lenient proxy; failures were hand-labelled (report 06).
-- Golden items were run during development; the test split was not used for any
-  design decision but was not unseen.
-- Single-turn retrieval: follow-ups are condensed from the last 3 turns only.
-
-## AI usage
-- **Claude Code (Claude Opus 5.5)** pair-programmed the pipeline stage by stage with a
-  team member. Every result eval and the design decision on scope, data sources, PII policy and model choice was made by
-  the team member; the golden set's gold answers were accepted by the team member.
-- **Claude Haiku 5.5** is the generation model inside the chatbot (answers, query
-  rewrites, follow-up condensing) and the B0 closed-book baseline.
-- No AI-generated number is reported without being computed by the commands above.
+## Notes
+- The SharePoint PDFs (calendars, handbook, ...) are **not** fetched by the crawler:
+  SharePoint's robots.txt disallows all crawlers. They arrive with Stage 2 as
+  hand-downloaded files with recorded sources.
+- This code was written with Claude Code in a pairing session (see the README's
+  "AI usage" section). Whoever commits it should read it first and be able to explain
+  each step above; that's what the course's Q&A checks.
+      

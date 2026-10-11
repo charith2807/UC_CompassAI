@@ -14,7 +14,7 @@ data/chunks/
 data/embeddings/
 data/bm25/
 chroma/
-eval/results/
+eval/results/*.jsonl
 *.sqlite3
 
 # model downloads (kept inside the project)
